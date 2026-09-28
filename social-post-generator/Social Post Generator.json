@@ -1,0 +1,487 @@
+{
+  "name": "Social Post Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a short, engaging Instagram caption (1-2 sentences) about {{ $json.message.text }}, and a separate simple image description for it. Respond in this exact format: CAPTION: <caption text> IMAGE: <image description>",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "8f13fe03-b4e6-4055-b79c-ecfe1c448279",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2e8471a-5ec3-409d-ac14-14b94b3a533d",
+              "name": "caption",
+              "value": "={{ $json.output.split('IMAGE:')[0].replace('CAPTION:', '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "f1c3be19-751b-4d20-a67f-f42ad83d9421",
+              "name": "imagePrompt",
+              "value": "={{ $json.output.split('IMAGE:')[1].trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        592,
+        0
+      ],
+      "id": "a07e03bb-efdc-43d2-bdde-d45cfe564cc0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "=https://image.pollinations.ai/prompt/{{ encodeURIComponent($json.imagePrompt) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        816,
+        0
+      ],
+      "id": "31913913-0655-403c-a489-06929ed37ae2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        208
+      ],
+      "id": "57d012ca-a8ff-433b-bb4d-f93c17d10228",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "1472869646",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $json.caption }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "6bd45b5e-c911-4a3c-a45d-f1934a06834f",
+      "name": "Send a photo message",
+      "webhookId": "0abf3b46-1483-42e2-b9bc-5feb411667e6",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Post Approval",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Feedback"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        0
+      ],
+      "id": "57585dc9-705b-47ad-a350-064a50499a1b",
+      "name": "Wait",
+      "webhookId": "2bea9a4b-f0e8-40fd-ac77-814858bf7881"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8172c0fb-b3cb-4ecf-b525-0809349ec469",
+              "name": "=approvalLink",
+              "value": "={{ $execution.resumeUrl }}&?decision=approve",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "563adb34-5145-4aa1-a459-27041d56e323",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "chatId": "1472869646",
+        "text": "=Approve ya Reject karne ke liye form bharo: {{ $execution.resumeFormUrl }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "b8240131-73a8-4b5e-9a91-83b5ee121300",
+      "name": "Send a text message",
+      "webhookId": "163fe8eb-ec18-426c-9af8-55da30ef028a",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "80a6479e-8a79-4cbe-9a28-5fbfd0035131",
+      "name": "Telegram Trigger",
+      "webhookId": "f2001516-6178-4128-ae20-b1fa4167f9a3",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "Approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1e8e3461-0c3d-4396-870d-c55dd0698bff"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0a331303-0c24-4253-ac87-bf400a957ee8",
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "Reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        0
+      ],
+      "id": "edd22549-3305-4216-98fc-cd72c1aaa7fa",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "1472869646",
+        "text": "Approved!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2160,
+        -96
+      ],
+      "id": "e328d8cc-7eb3-485a-b1ee-0a1511ed04ab",
+      "name": "Send a text message1",
+      "webhookId": "983bb167-5263-4615-ba53-bfb449eadf4b",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Purana caption: {{ $('Edit Fields').last().json.caption }}\nPurana image description: {{ $('Edit Fields').last().json.imagePrompt }}\nUser ka feedback: {{ $('Wait').item.json.Feedback }}\n\nFeedback ke hisaab se caption aur image description dono badlo. Isi format mein jawaab do:\nCAPTION: <caption>\nIMAGE: <image description>",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2160,
+        96
+      ],
+      "id": "1d5c07a9-c482-4bfa-9b39-7652d200347e",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2032,
+        304
+      ],
+      "id": "49e7483c-0e4d-4c1b-ad43-325d13c2d72b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a photo message": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "159f7e84-17a3-4690-ad99-be59b681ddb4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5a767bf3b5eb7c8309acf0bde7ef27ab19a2881a9d88dffbfa0823e5d7f6b1a8"
+  },
+  "nodeGroups": [],
+  "id": "AGSvL7OOS1JlzUUh",
+  "tags": []
+}

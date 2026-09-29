@@ -1,0 +1,400 @@
+{
+  "name": "LinkedIn Post Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "person": "_ba0WhD8wz",
+        "text": "={{ $('Parse JSON').item.json.post }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        0
+      ],
+      "id": "bf2eb71a-2e94-4554-a8d1-4a322ea5b954",
+      "name": "Create a post",
+      "retryOnFail": false,
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "o6xKnJVkPnh501ZI",
+          "name": "LinkedIn account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=LinkedIn pe post ho gaya!\n\n{{ $('Parse JSON').item.json.post }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2144,
+        -144
+      ],
+      "id": "281edb12-3e32-4b9b-ac78-951c155208c3",
+      "name": "Send a text message",
+      "webhookId": "b53bc8ba-cc85-40f0-83ad-d80d07189e49",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=LinkedIn post fail hui: {{ $json.error }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2240,
+        80
+      ],
+      "id": "3293c38d-af0e-46bb-98a4-396843d58afa",
+      "name": "Send a text message1",
+      "webhookId": "39064db6-3188-4286-9fc8-bbef9d3fdd11",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        48,
+        32
+      ],
+      "id": "87d00327-ce22-4ce1-8d5e-3fdca1651e8f",
+      "name": "Telegram Trigger",
+      "webhookId": "a7e2ac68-c8dc-48e6-9164-6f5d074ad401",
+      "credentials": {
+        "telegramApi": {
+          "id": "eERPR5aI26kFbM80",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{ $fromAI('search_query', 'Create a precise web search query for the users topic. Include the current year when the topic involves recent or current information.') }}",
+        "additionalParameters": {}
+      },
+      "type": "@brave/n8n-nodes-brave-search.braveSearchTool",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        320
+      ],
+      "id": "c1354e78-548b-4769-89d8-cf31cb06bb9d",
+      "name": "Brave Search",
+      "credentials": {
+        "braveSearchApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-image-2\",\n  \"prompt\": {{ JSON.stringify($json.image_prompt) }},\n  \"size\": \"1024x1024\",\n  \"quality\": \"medium\",\n  \"n\": 1\n}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        -256
+      ],
+      "id": "e5aec13f-0b05-428f-9cf8-5356304f22f0",
+      "name": "OpenAI Image",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wyG0w87SagIIngwO",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "6aee41676dad7ec540980761f4076360"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image",
+              "value": "={{ $json.data[0].b64_json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1104,
+        -256
+      ],
+      "id": "a39e1ae4-5115-4d79-b2e8-1b45247df974",
+      "name": "imgbb Upload",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rest.apitemplate.io/v2/create-image?template_id=b0077b29793f5856",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"overrides\": [\n    { \"name\": \"bg\", \"src\": \"{{ $json.data.url }}\" }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1328,
+        -256
+      ],
+      "id": "d6c2f165-419e-4995-a015-8b262bd30fad",
+      "name": "APITemplate",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Pf4Ze4nGBN5MjlW3",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.download_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1552,
+        -256
+      ],
+      "id": "a7f740d8-580f-4a24-945d-46696bc364c4",
+      "name": "Download Image"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet raw = '';\nlet incomplete = item.status === 'incomplete';\n\nif (Array.isArray(item.output)) {\n  for (const o of item.output) {\n    if (o.status === 'incomplete') incomplete = true;\n    if (o.type === 'message' && Array.isArray(o.content)) {\n      for (const c of o.content) {\n        if (c.type === 'output_text' && c.text) raw += c.text + '\\n';\n      }\n    }\n  }\n} else if (Array.isArray(item.content)) {\n  raw = item.content.filter(b => b.type === 'text').map(b => b.text).join('\\n');\n}\n\nif (!raw.trim()) {\n  throw new Error('No text found in the model reply. Check the output structure of the previous node.');\n}\n\nconst pStart = raw.lastIndexOf('===POST===');\nconst iStart = raw.indexOf('===IMAGE_PROMPT===', pStart);\nif (pStart === -1 || iStart === -1) {\n  throw new Error((incomplete ? 'Reply was cut off before the image prompt. Raise Maximum Number of Tokens. ' : 'Markers missing. ') + 'Last 200 characters: ' + raw.slice(-200));\n}\n\nlet end = raw.indexOf('===END===', iStart);\nif (end === -1) {\n  if (incomplete) throw new Error('Reply was cut off by the token limit. Raise Maximum Number of Tokens.');\n  end = raw.length;\n}\n\nconst post = raw.slice(pStart + 10, iStart).trim();\nconst image_prompt = raw.slice(iStart + 18, end).replace(/\\s+/g, ' ').trim();\n\nif (post.length < 200 || image_prompt.length < 80) {\n  throw new Error('Post or image prompt looks too short. Check the model reply.');\n}\n\nreturn [{ json: { post, image_prompt } }];\n\nconst wordCount = post.split(/\\s+/).filter(Boolean).length;\nif (wordCount > 270) {\n  throw new Error('Post is ' + wordCount + ' words. Limit is 250. Run again.');\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -112
+      ],
+      "id": "e60e8e93-5731-4091-ad7e-9c7579c1f8eb",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chat-latest",
+          "mode": "list",
+          "cachedResultName": "CHAT-LATEST"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Write a LinkedIn post based on this topic:\n\n{{ $('Telegram Trigger').item.json.message.text }}\n\nCurrent date:\n{{ $now.format('dd MMMM yyyy') }}\n\nCurrent year:\n{{ $now.format('yyyy') }}\n\nRESEARCH RULES\n\nBefore writing, research the topic using the web search tool. Search for current and reliable information available as of the current date. Run multiple searches when needed to understand the topic properly.\n\nPrioritize:\nOfficial company documentation and official announcements\nGoogle Search Central for Google and SEO topics\nResearch papers and government sources\nReputable technology and SEO industry publications\n\nFor any claim about what a tool, product or Google feature currently does, check the most recent official announcement or help page, not only older documentation, and prefer sources from the last three months.\n\nVerify every important factual claim before including it. If a claim cannot be verified with a reliable source, remove it. Do not assume a frequently repeated claim is true.\n\nDo not invent statistics, dates, quotes, product features, studies, Google updates, SEO updates, company announcements or performance claims. Do not write phrases like 'studies show' or 'analyses have found' unless you can name the source and it appears in your search results.\n\nDATE RULE\n\nThe current year is {{ $now.format('yyyy') }}. Do not treat 2025 as the current year. Treat any 2025 event as history. For current developments, use the latest information found.\n\nVOICE\n\nWrite as a senior SEO and AI practitioner with more than twenty years in the field. The tone is calm, direct and confident, like someone who has watched many algorithm changes and no longer gets excited by hype. Give a clear opinion and one practical piece of advice that a working SEO can act on this week.\n\nYou may use first person for opinions and advice, such as 'I would' or 'my advice'. Do not state how many years of experience you have. Do not invent personal experiences, client stories, results you achieved, things you tested or questions people ask you.\n\nLENGTH AND STRUCTURE\n\nThe post must be 250 words or fewer. Aim for 200 to 240 words. Count the words before you answer and cut anything that does not earn its place.\n\nOpen with one strong first line that states a specific point or observation, not a generic question or a broad statement about the industry.\nThen use short paragraphs of one to three sentences.\nInclude at most two or three verified facts, each with its correct date where it matters.\nUse a numbered list only if the topic truly needs steps.\nEnd with one real question that finishes with a question mark.\n\nSTYLE RULES\n\nWrite plain text only. No markdown, no asterisks, no emojis, no hashtags, no decorative symbols, no raw URLs and no title.\nDo not use forward slash characters, except inside official names such as Google I/O.\nNever use an em dash. Use commas, periods or colons.\nDo not use the patterns 'not just X, but Y' or 'it is not X, it is Y'.\nDo not use the words transformation, landscape, game-changing, leverage, unlock, robust, seamless, elevate, empower, harness, streamline, cutting-edge or comprehensive.\nDo not use openings such as 'In today's fast-paced world' or endings such as 'In conclusion' or 'Ultimately'.\nVary sentence length. Use contractions where they sound natural.\nDo not explain your research process. Do not include a sources section. Do not mention that you are an AI.\n\nBefore answering, check every date-sensitive statement against the current information you found, and check the word count.\n\nOUTPUT FORMAT\n\nReturn exactly the structure below and nothing else. Do not write any sentence before ===POST=== or after ===END===, including any note about your research.\n\n===POST===\nthe final LinkedIn post, in normal paragraphs separated by one blank line\n===IMAGE_PROMPT===\nthe image brief, written as one single paragraph\n===END===\n\nRules for the image brief:\nWrite a complete brief for a square 1:1 infographic that explains the main idea of the post.\nWrite the exact title text first, then choose a layout that fits the topic, such as columns, stacked layers or a step by step flow.\nGive the exact wording of every heading and label, with all on-image text inside single quotes.\nKeep the text short: under 80 words in total and no more than 6 words per line.\nUse only facts that are already verified in the post. Do not add any new claim, number or date to the image.\nStyle: clean modern editorial infographic, light background, dark navy text, one orange accent color, simple flat icons, generous spacing.\nDo not include any author name, profile photo, logo, signature, watermark or footer, and keep the bottom edge clear.\n\nThe very last line of your reply must be ===END=== and nothing may come after it."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 4050
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        496,
+        64
+      ],
+      "id": "73a71524-9220-49c5-88be-0a524eed2aff",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "mkxZaZRAlUezgzXQ",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Image": {
+      "main": [
+        [
+          {
+            "node": "imgbb Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "imgbb Upload": {
+      "main": [
+        [
+          {
+            "node": "APITemplate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "APITemplate": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "daec8bbf-9a6f-4aa4-be85-28f6afe11adb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5a767bf3b5eb7c8309acf0bde7ef27ab19a2881a9d88dffbfa0823e5d7f6b1a8"
+  },
+  "nodeGroups": [],
+  "id": "6itARsMpSOsCU1PD",
+  "tags": []
+}
